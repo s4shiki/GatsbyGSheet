@@ -1,3 +1,8 @@
+const activeEnv = process.env.ACTIVE_ENV || process.env.NODE_ENV || "development"
+require("dotenv").config({
+  path: `.env.${activeEnv}`
+})
+
 module.exports = {
   siteMetadata: {
     title: `Gatsby Starter Blog`,
@@ -16,37 +21,8 @@ module.exports = {
     {
       resolve: `gatsby-source-filesystem`,
       options: {
-        path: `${__dirname}/content/blog`,
-        name: `blog`,
-      },
-    },
-    {
-      resolve: `gatsby-source-filesystem`,
-      options: {
         name: `images`,
         path: `${__dirname}/src/images`,
-      },
-    },
-    {
-      resolve: `gatsby-transformer-remark`,
-      options: {
-        plugins: [
-          {
-            resolve: `gatsby-remark-images`,
-            options: {
-              maxWidth: 630,
-            },
-          },
-          {
-            resolve: `gatsby-remark-responsive-iframe`,
-            options: {
-              wrapperStyle: `margin-bottom: 1.0725rem`,
-            },
-          },
-          `gatsby-remark-prismjs`,
-          `gatsby-remark-copy-linked-files`,
-          `gatsby-remark-smartypants`,
-        ],
       },
     },
     `gatsby-transformer-sharp`,
@@ -74,32 +50,28 @@ module.exports = {
         `,
         feeds: [
           {
-            serialize: ({ query: { site, allMarkdownRemark } }) => {
-              return allMarkdownRemark.nodes.map(node => {
-                return Object.assign({}, node.frontmatter, {
-                  description: node.excerpt,
-                  date: node.frontmatter.date,
-                  url: site.siteMetadata.siteUrl + node.fields.slug,
-                  guid: site.siteMetadata.siteUrl + node.fields.slug,
-                  custom_elements: [{ "content:encoded": node.html }],
+            serialize: ({ query: { site, allGSheetBlog } }) => {
+              return allGSheetBlog.nodes.map(node => {
+                return Object.assign({}, node, {
+                  date: node.updatedAt,
+                  url: site.siteMetadata.siteUrl + node.slug,
+                  guid: site.siteMetadata.siteUrl + node.slug,
+                  custom_elements: [{ "content:encoded": node.body }],
                 })
               })
             },
             query: `
               {
-                allMarkdownRemark(
-                  sort: { order: DESC, fields: [frontmatter___date] },
-                ) {
+                allGSheetBlog(
+                  sort: { fields: [createdAt], order: DESC }
+                 ) {
                   nodes {
-                    excerpt
-                    html
-                    fields {
-                      slug
-                    }
-                    frontmatter {
-                      title
-                      date
-                    }
+                    id
+                    title
+                    slug
+                    description
+                    body
+                    updatedAt 
                   }
                 }
               }
@@ -128,5 +100,15 @@ module.exports = {
     // this (optional) plugin enables Progressive Web App + Offline functionality
     // To learn more, visit: https://gatsby.dev/offline
     // `gatsby-plugin-offline`,
+    {
+      resolve: "gatsby-source-google-spreadsheet",
+      options: {
+        spreadsheetId: "{スプレッドシートのIDを入れてください}",
+        typePrefix: "GSheet",
+        credentials: require(process.env.GOOGLE_SERVICE_ACCOUNT_CREDENTIALS_PATH),
+        filterNode: () => true,
+        mapNode: node => node
+      }
+    }
   ],
 }
